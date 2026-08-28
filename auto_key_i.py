@@ -4,6 +4,7 @@ import threading
 import logging
 import sys
 from pynput.keyboard import Controller, Listener, Key
+from pynput.mouse import Controller as MouseController
 
 
 logging.basicConfig(
@@ -19,9 +20,10 @@ class AutoKeyI:
         self.running = False
         self.thread = None
         self.keyboard = Controller()
+        self.mouse = MouseController()
         self.lock = threading.Lock()
         self.interval = 7.0
-        self.jitter = 0.5
+        self.jitter = 1.0
         self.stop_event = threading.Event()
 
     def start(self):
@@ -33,7 +35,7 @@ class AutoKeyI:
             self.stop_event.clear()
             self.thread = threading.Thread(target=self._loop, daemon=True)
             self.thread.start()
-            logger.info("已启动，约每 7 秒按一次 I 键（F10 停止）")
+            logger.info("已启动，约每 6~8 秒随机按一次 I 键（F10 停止）")
 
     def stop(self):
         with self.lock:
@@ -45,15 +47,29 @@ class AutoKeyI:
                 self.thread.join(timeout=2)
             logger.info("已停止")
 
+    def _jitter_mouse(self):
+        try:
+            dx = random.randint(-8, 8)
+            dy = random.randint(-8, 8)
+            self.mouse.move(dx, dy)
+            time.sleep(random.uniform(0.03, 0.12))
+            self.mouse.move(-dx, -dy)
+        except Exception as e:
+            logger.debug(f"鼠标抖动失败: {e}")
+
     def _loop(self):
         while not self.stop_event.is_set():
-            # 模拟真实按键，按下与释放之间加入随机小延迟
+            # 随机按键时长 0.05 ~ 0.25 秒
+            press_duration = random.uniform(0.05, 0.25)
             self.keyboard.press("i")
-            time.sleep(random.uniform(0.05, 0.15))
+            time.sleep(press_duration)
             self.keyboard.release("i")
-            logger.info("已按下 I 键")
+            logger.info("已按下 I 键，持续 %.3f 秒", press_duration)
 
-            # 随机间隔 6.5 ~ 7.5 秒，降低被判定为机械操作的风险
+            # 每次按键后随机轻微移动鼠标，模拟真人操作
+            self._jitter_mouse()
+
+            # 随机间隔 6.0 ~ 8.0 秒，避免固定节奏
             sleep_time = self.interval + random.uniform(-self.jitter, self.jitter)
             if self.stop_event.wait(sleep_time):
                 break
