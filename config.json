@@ -1,0 +1,17 @@
+{
+  "key": "i",
+  "interval": 7.0,
+  "jitter": 1.0,
+  "press_duration_min": 0.05,
+  "press_duration_max": 0.25,
+  "mouse_jitter_enabled": true,
+  "mouse_jitter_range": 8,
+  "mouse_jitter_delay_min": 0.03,
+  "mouse_jitter_delay_max": 0.12,
+  "hotkey_start": "f9",
+  "hotkey_stop": "f10",
+  "hotkey_exit": "f12",
+  "auto_stop_minutes": 0,
+  "log_to_file": true,
+  "log_file": "auto_key_i.log"
+}
