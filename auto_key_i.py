@@ -3,8 +3,6 @@ import random
 import threading
 import logging
 import sys
-import ctypes
-import psutil
 from pynput.keyboard import Controller, Listener, Key
 
 
@@ -14,42 +12,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger("AutoKeyI")
-
-
-user32 = ctypes.windll.user32
-
-
-def get_foreground_window_title():
-    hwnd = user32.GetForegroundWindow()
-    if not hwnd:
-        return ""
-    length = user32.GetWindowTextLengthW(hwnd)
-    if length == 0:
-        return ""
-    buf = ctypes.create_unicode_buffer(length + 1)
-    user32.GetWindowTextW(hwnd, buf, length + 1)
-    return buf.value
-
-
-# 游戏识别配置，可根据实际情况调整
-GAME_PROCESS_NAMES = ["WhereWindsMeet.exe", "燕云十六声.exe", "wwm.exe"]
-GAME_WINDOW_KEYWORDS = ["燕云十六声", "Where Winds Meet", "WWM"]
-
-
-def is_game_running():
-    for proc in psutil.process_iter(["name"]):
-        try:
-            name = proc.info["name"]
-            if name and any(p.lower() == name.lower() for p in GAME_PROCESS_NAMES):
-                return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            continue
-    return False
-
-
-def is_game_focused():
-    title = get_foreground_window_title()
-    return any(kw in title for kw in GAME_WINDOW_KEYWORDS)
 
 
 class AutoKeyI:
@@ -66,9 +28,6 @@ class AutoKeyI:
         with self.lock:
             if self.running:
                 logger.info("已经在运行中")
-                return
-            if not is_game_running():
-                logger.warning("未检测到《燕云十六声》游戏进程，请先启动游戏")
                 return
             self.running = True
             self.stop_event.clear()
@@ -88,17 +47,6 @@ class AutoKeyI:
 
     def _loop(self):
         while not self.stop_event.is_set():
-            if not is_game_running():
-                logger.warning("游戏进程已消失，自动停止")
-                self.stop()
-                break
-
-            if not is_game_focused():
-                logger.info("游戏窗口未激活，跳过本次按键")
-                if self.stop_event.wait(1):
-                    break
-                continue
-
             # 模拟真实按键，按下与释放之间加入随机小延迟
             self.keyboard.press("i")
             time.sleep(random.uniform(0.05, 0.15))
@@ -130,7 +78,7 @@ def on_press(key):
 
 if __name__ == "__main__":
     print("=" * 55)
-    print("《燕云十六声》自动按 I 工具")
+    print("自动按 I 工具")
     print("=" * 55)
     print("F9  : 启动")
     print("F10 : 停止")
