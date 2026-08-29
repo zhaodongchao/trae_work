@@ -4,6 +4,9 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 def create_icon_ico():
     sizes = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
     images = []
@@ -16,22 +19,34 @@ def create_icon_ico():
             font = ImageFont.load_default()
         dc.text((size[0] // 2, size[1] // 2), "I", font=font, fill="white", anchor="mm")
         images.append(image)
-    images[0].save("icon.ico", format="ICO", sizes=sizes, append_images=images[1:])
-    print("已生成 icon.ico")
+    icon_path = os.path.join(BASE_DIR, "icon.ico")
+    images[0].save(icon_path, format="ICO", sizes=sizes, append_images=images[1:])
+    print(f"已生成 {icon_path}")
 
 
 def main():
+    os.chdir(BASE_DIR)
+
+    try:
+        import PyInstaller.__main__
+    except ImportError as e:
+        print(f"缺少 PyInstaller：{e}")
+        print('请先安装依赖：python -m pip install -r requirements.txt')
+        sys.exit(1)
+
     create_icon_ico()
 
-    import PyInstaller.__main__
+    script = os.path.join(BASE_DIR, "auto_key_i.py")
+    icon = os.path.join(BASE_DIR, "icon.ico")
+    config_add = f"config.json{os.pathsep}."
 
     args = [
-        "auto_key_i.py",
+        script,
         "--onefile",
         "--noconsole",
         "--name", "AutoKeyI",
-        "--add-data", "config.json;.",
-        "--icon", "icon.ico",
+        "--add-data", config_add,
+        "--icon", icon,
         "--clean",
     ]
     PyInstaller.__main__.run(args)
