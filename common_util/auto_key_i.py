@@ -34,6 +34,7 @@ def load_config(filename="config.json"):
         "mouse_jitter_range": 8,
         "mouse_jitter_delay_min": 0.03,
         "mouse_jitter_delay_max": 0.12,
+        "combo_keys": [],
         "hotkey_start": "f9",
         "hotkey_stop": "f10",
         "hotkey_exit": "f12",
@@ -78,6 +79,16 @@ def parse_key(name):
         return Key[name.lower()]
     except KeyError:
         return None
+
+
+def key_to_controller_arg(name):
+    name = name.strip().lower()
+    if len(name) == 1:
+        return name
+    special = parse_key(name)
+    if special is not None:
+        return special
+    return name
 
 
 class AutoKey:
@@ -145,10 +156,21 @@ class AutoKey:
                     break
 
             press_duration = random.uniform(press_min, press_max)
-            self.keyboard.press(key)
+            combo_names = [n.lower() for n in CFG.get("combo_keys", [])]
+            combo_keys = [k for name in combo_names for k in [parse_key(name)] if k is not None]
+            target = key_to_controller_arg(key)
+            all_keys = combo_keys + [target]
+
+            for k in all_keys:
+                self.keyboard.press(k)
             time.sleep(press_duration)
-            self.keyboard.release(key)
-            logger.info(f"已按下 {key.upper()} 键，持续 {press_duration:.3f} 秒")
+            for k in reversed(all_keys):
+                self.keyboard.release(k)
+
+            combo_str = "+".join(combo_names).upper()
+            key_label = key.upper()
+            display_key = f"{combo_str}+{key_label}" if combo_str else key_label
+            logger.info(f"已按下 {display_key} 键，持续 {press_duration:.3f} 秒")
 
             self._jitter_mouse()
 
@@ -208,6 +230,13 @@ class AppUI:
         ttk.Label(frame, text="按键:").grid(row=0, column=0, sticky=tk.W, pady=5)
         self.entry_key = ttk.Entry(frame, width=10)
         self.entry_key.grid(row=0, column=1, sticky=tk.W, pady=5)
+
+        self.var_ctrl = tk.BooleanVar()
+        self.var_shift = tk.BooleanVar()
+        self.var_alt = tk.BooleanVar()
+        ttk.Checkbutton(frame, text="Ctrl", variable=self.var_ctrl).grid(row=0, column=2, sticky=tk.W, pady=5, padx=(10, 0))
+        ttk.Checkbutton(frame, text="Shift", variable=self.var_shift).grid(row=0, column=3, sticky=tk.W, pady=5)
+        ttk.Checkbutton(frame, text="Alt", variable=self.var_alt).grid(row=0, column=4, sticky=tk.W, pady=5)
 
         ttk.Label(frame, text="间隔(秒):").grid(row=1, column=0, sticky=tk.W, pady=5)
         self.entry_interval = ttk.Entry(frame, width=10)
@@ -282,6 +311,10 @@ class AppUI:
 
     def _apply_config(self):
         self.entry_key.insert(0, CFG.get("key", "i"))
+        combo_keys = [k.lower() for k in CFG.get("combo_keys", [])]
+        self.var_ctrl.set("ctrl" in combo_keys)
+        self.var_shift.set("shift" in combo_keys)
+        self.var_alt.set("alt" in combo_keys)
         self.entry_interval.insert(0, str(CFG.get("interval", 7.0)))
         self.entry_jitter.insert(0, str(CFG.get("jitter", 1.0)))
         self.entry_press_min.insert(0, str(CFG.get("press_duration_min", 0.05)))
@@ -309,8 +342,17 @@ class AppUI:
         if not key:
             raise ValueError("按键不能为空")
 
+        combo_keys = []
+        if self.var_ctrl.get():
+            combo_keys.append("ctrl")
+        if self.var_shift.get():
+            combo_keys.append("shift")
+        if self.var_alt.get():
+            combo_keys.append("alt")
+
         return {
             "key": key,
+            "combo_keys": combo_keys,
             "interval": interval,
             "jitter": jitter,
             "press_duration_min": press_min,
