@@ -25,7 +25,7 @@ from pathlib import Path
 from tkinter import (
     Tk, Toplevel, StringVar, BooleanVar, IntVar,
     Menu, PhotoImage, END, NORMAL, DISABLED, BOTH, X, Y, LEFT, RIGHT, TOP, BOTTOM,
-    W, E, N, S, HORIZONTAL, VERTICAL, CENTER, YES, NO, CANCEL, messagebox, filedialog
+    W, E, N, S, HORIZONTAL, VERTICAL, CENTER, messagebox, filedialog
 )
 from tkinter import ttk
 
