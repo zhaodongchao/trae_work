@@ -1,0 +1,7 @@
+# 本工具使用 Python 标准库 tkinter 开发，原则上无需安装第三方依赖即可直接运行。
+# 以下为可选增强依赖：
+# - PyQt6：如需使用 PyQt6 版本界面（当前主程序为 tkinter，保证零依赖）
+# - pyinstaller：用于打包生成 exe 可执行文件
+
+# PyQt6==6.6.1
+pyinstaller>=6.0.0
