@@ -4,7 +4,7 @@
   "jitter": 1.0,
   "press_duration_min": 0.05,
   "press_duration_max": 0.25,
-  "mouse_jitter_enabled": true,
+  "mouse_jitter_enabled": false,
   "mouse_jitter_range": 8,
   "mouse_jitter_delay_min": 0.03,
   "mouse_jitter_delay_max": 0.12,

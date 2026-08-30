@@ -30,7 +30,7 @@ def load_config(filename="config.json"):
         "jitter": 1.0,
         "press_duration_min": 0.05,
         "press_duration_max": 0.25,
-        "mouse_jitter_enabled": True,
+        "mouse_jitter_enabled": False,
         "mouse_jitter_range": 8,
         "mouse_jitter_delay_min": 0.03,
         "mouse_jitter_delay_max": 0.12,
@@ -100,6 +100,8 @@ class AutoKey:
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
         self.start_time = None
+        # 记录鼠标抖动前的原始绝对位置，用于停止/退出时恢复
+        self._last_mouse_pos = None
 
     def start(self):
         with self.lock:
@@ -121,23 +123,49 @@ class AutoKey:
             self.stop_event.set()
             if self.thread:
                 self.thread.join(timeout=2)
+            self._restore_mouse()
             logger.info("已停止")
 
+    def _restore_mouse(self):
+        """将鼠标恢复到抖动前的原始绝对位置，避免游戏中鼠标视角异常。"""
+        if self._last_mouse_pos is not None:
+            try:
+                self.mouse.position = self._last_mouse_pos
+                logger.info("鼠标位置已恢复")
+            except Exception as e:
+                logger.debug(f"恢复鼠标位置失败: {e}")
+            finally:
+                self._last_mouse_pos = None
+
     def _jitter_mouse(self):
-        if not CFG.get("mouse_jitter_enabled", True):
+        """
+        鼠标抖动使用绝对坐标进行偏移并恢复。
+        相对移动 self.mouse.move 在游戏中容易导致视角偏移，
+        因此记录原始屏幕坐标后通过绝对坐标恢复。
+        """
+        if not CFG.get("mouse_jitter_enabled", False):
             return
         try:
             r = CFG.get("mouse_jitter_range", 8)
             dx = random.randint(-r, r)
             dy = random.randint(-r, r)
-            self.mouse.move(dx, dy)
+            # 记录抖动前的绝对坐标
+            original = self.mouse.position
+            self._last_mouse_pos = original
+            # 计算新绝对坐标并移动
+            new_x = max(0, original[0] + dx)
+            new_y = max(0, original[1] + dy)
+            self.mouse.position = (new_x, new_y)
             time.sleep(random.uniform(
                 CFG.get("mouse_jitter_delay_min", 0.03),
                 CFG.get("mouse_jitter_delay_max", 0.12),
             ))
-            self.mouse.move(-dx, -dy)
+            # 恢复到原始绝对坐标
+            self.mouse.position = original
+            self._last_mouse_pos = None
         except Exception as e:
             logger.debug(f"鼠标抖动失败: {e}")
+            self._last_mouse_pos = None
 
     def _loop(self):
         key = CFG.get("key", "i")
@@ -319,7 +347,7 @@ class AppUI:
         self.entry_jitter.insert(0, str(CFG.get("jitter", 1.0)))
         self.entry_press_min.insert(0, str(CFG.get("press_duration_min", 0.05)))
         self.entry_press_max.insert(0, str(CFG.get("press_duration_max", 0.25)))
-        self.var_mouse.set(CFG.get("mouse_jitter_enabled", True))
+        self.var_mouse.set(CFG.get("mouse_jitter_enabled", False))
         self.entry_mouse_range.insert(0, str(CFG.get("mouse_jitter_range", 8)))
         self.entry_hotkey_start.insert(0, CFG.get("hotkey_start", "f9"))
         self.entry_hotkey_stop.insert(0, CFG.get("hotkey_stop", "f10"))
