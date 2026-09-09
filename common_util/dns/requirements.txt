@@ -1,0 +1,3 @@
+# 本工具主程序使用 Python 标准库 tkinter / subprocess / ctypes 开发，可直接运行零依赖。
+# pyinstaller 用于打包生成 exe 可执行文件。
+pyinstaller>=6.0.0
